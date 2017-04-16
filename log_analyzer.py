@@ -26,6 +26,9 @@ def main(argv):
 		question2(sys.argv)
 	elif(question == 3):
 		question3(sys.argv)
+	elif(question == 4):
+		question4(sys.argv)
+
 
 
 def checkvalid(argv):
@@ -68,21 +71,30 @@ def question2(argv):
 
 def question3(argv):
 	print("* Q3: unique user names")
-	count = 0
 	for x in xrange (3, len(argv)):
-		count = 0
 		dirname = argv[x]
 		usernames = []
-		for file in os.listdir(logdir + dirname):
-			text_file = sc.textFile(logdir + dirname + "/" + file)
-			sessions = text_file.filter(lambda line: "Starting Session" in line)
-			usernames.extend(sessions.map(q3filter).collect())		
+		text_file = sc.textFile(logdir + dirname)
+		sessions = text_file.filter(lambda line: "Starting Session" in line)
+		usernames.extend(sessions.map(q3filter).collect())		
 		print("+ " + dirname + ": " + str(list(set(usernames))))
 
 def q3filter(u):
 	if("Starting Session" in u):
 		word_list = u.split()
 		return str(word_list[-1])
+
+def question4(argv):
+	print("* Q4: sessions per user")
+	for x in xrange (3, len(argv)):
+		counts = []
+		dirname = argv[x]
+		text_file = sc.textFile(logdir + dirname)
+		sessions = text_file.filter(lambda line: "Starting Session" in line)
+		counts.extend(sessions.map(q3filter) \
+					.map(lambda name: (name,1)) \
+					.reduceByKey(lambda a,b: a + b).collect())
+		print("+ " + dirname + ": " + str(counts))
 
 if __name__ == "__main__":
 	main(sys.argv)

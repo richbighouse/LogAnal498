@@ -19,7 +19,6 @@ sc = SparkContext(conf = conf)
 def main(argv):
 	checkvalid(sys.argv)
 	question = int(sys.argv[2])
-	select(question)
 	if(question == 1):
 		question1(sys.argv)
 	elif(question == 2):
@@ -28,7 +27,8 @@ def main(argv):
 		question3(sys.argv)
 	elif(question == 4):
 		question4(sys.argv)
-
+	elif(question == 5):
+		question5(sys.argv)
 
 
 def checkvalid(argv):
@@ -40,12 +40,6 @@ def checkvalid(argv):
 		if(not(os.path.isdir(logdir + argv[x]))):
 			print "argument not a dir!"	
 			sys.exit()
-
-def select(x):
-	if(x == 1):
-		question1(sys.argv)
-	elif(x == 2):
-		question2(sys.argv)
 
 def question1(argv):
 	print("* Q1: line counts")
@@ -82,7 +76,8 @@ def question3(argv):
 def q3filter(u):
 	if("Starting Session" in u):
 		word_list = u.split()
-		return str(word_list[-1])
+		username = str(word_list[-1])[:-1]
+		return username
 
 def question4(argv):
 	print("* Q4: sessions per user")
@@ -95,6 +90,18 @@ def question4(argv):
 					.map(lambda name: (name,1)) \
 					.reduceByKey(lambda a,b: a + b).collect())
 		print("+ " + dirname + ": " + str(counts))
+
+def question5(argv):
+	print("* Q5: number of errors")
+	for x in xrange (3, len(argv)):
+		dirname = argv[x]
+		text_file = sc.textFile(logdir + dirname)
+		errors = text_file.filter(q5containserror).count()
+		print("+ " + dirname + ": " + str(errors))
+
+def q5containserror(m):
+	pattern = re.compile('error', re.IGNORECASE)
+	return pattern.search(m)
 
 if __name__ == "__main__":
 	main(sys.argv)

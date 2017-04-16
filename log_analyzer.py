@@ -111,13 +111,22 @@ def question6(argv):
 		dirname = argv[x]
 		text_file = sc.textFile(logdir + dirname)
 		errors = text_file.filter(q5containserror) \
-			.map(extractMessage) \
-			.reduceByKey(lambda a,b: a + b)
-		print("+ " + dirname + ": " + str(errors.collect()))
+			.map(extractSourceAndMessage) \
+			.map(lambda line: (line,1)) \
+			.reduceByKey(lambda a,b: a + b) \
+			.takeOrdered(5, key = lambda x: -x[1])
+		print("+ " + dirname + ": ")
+		for e in errors:
+			print("\t - ("+str(e[1])+", '"+e[0]+"')")
+		
 
 def extractMessage(line):
 	index = find_nth(line, ":",3)
-	return line[index+1:]
+	return str(line[index+1:])
+
+def extractSourceAndMessage(line):
+	index = find_nth(line, " ",4)
+	return str(line[index+1:])
 
 def find_nth(haystack, needle, n):
     start = haystack.find(needle)

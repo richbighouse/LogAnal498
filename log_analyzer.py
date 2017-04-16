@@ -31,6 +31,9 @@ def main(argv):
 		question5(sys.argv)
 	elif(question == 6):
 		question6(sys.argv)
+	elif(question == 7):
+		question7(sys.argv)
+
 
 
 def checkvalid(argv):
@@ -75,12 +78,6 @@ def question3(argv):
 		usernames.extend(sessions.map(q3filter).collect())		
 		print("+ " + dirname + ": " + str(list(set(usernames))))
 
-def q3filter(u):
-	if("Starting Session" in u):
-		word_list = u.split()
-		username = str(word_list[-1])[:-1]
-		return username
-
 def question4(argv):
 	print("* Q4: sessions per user")
 	for x in xrange (3, len(argv)):
@@ -101,10 +98,6 @@ def question5(argv):
 		errors = text_file.filter(q5containserror).count()
 		print("+ " + dirname + ": " + str(errors))
 
-def q5containserror(m):
-	pattern = re.compile('error', re.IGNORECASE)
-	return pattern.search(m)
-
 def question6(argv):
 	print("* Q6: 5 most frequent error messages")
 	for x in xrange (3, len(argv)):
@@ -118,8 +111,35 @@ def question6(argv):
 		print("+ " + dirname + ": ")
 		for e in errors:
 			print("\t - ("+str(e[1])+", '"+e[0]+"')")
-		
 
+def question7(argv):
+	print("* Q7: users who started a session on both hosts, i.e, on exactly 2 hosts")
+	dirname1 = argv[3]
+	dirname2 = argv[4]
+	text_file1 = sc.textFile(logdir + dirname1)
+	text_file2 = sc.textFile(logdir + dirname2)
+	sessions1 = text_file1.filter(lambda line: "Starting Session" in line)
+	sessions2 = text_file2.filter(lambda line: "Starting Session" in line)
+	usernames1 = sessions1.map(q3filter) \
+			.map(lambda user: (user, dirname1)) \
+			.reduceByKey(lambda a,b: a).keys()
+	usernames2 = sessions2.map(q3filter) \
+			.map(lambda user: (user, dirname2)) \
+			.reduceByKey(lambda a,b: a).keys()
+	intersection = usernames1.intersection(usernames2).collect()
+			
+	print("+ : " + str(intersection))
+
+def q3filter(u):
+	if("Starting Session" in u):
+		word_list = u.split()
+		username = str(word_list[-1])[:-1]
+		return username
+
+def q5containserror(m):
+	pattern = re.compile('error', re.IGNORECASE)
+	return pattern.search(m)
+		
 def extractMessage(line):
 	index = find_nth(line, ":",3)
 	return str(line[index+1:])

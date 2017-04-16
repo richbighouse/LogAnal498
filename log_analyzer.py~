@@ -29,6 +29,8 @@ def main(argv):
 		question4(sys.argv)
 	elif(question == 5):
 		question5(sys.argv)
+	elif(question == 6):
+		question6(sys.argv)
 
 
 def checkvalid(argv):
@@ -103,7 +105,27 @@ def q5containserror(m):
 	pattern = re.compile('error', re.IGNORECASE)
 	return pattern.search(m)
 
+def question6(argv):
+	print("* Q6: 5 most frequent error messages")
+	for x in xrange (3, len(argv)):
+		dirname = argv[x]
+		text_file = sc.textFile(logdir + dirname)
+		errors = text_file.filter(q5containserror) \
+			.map(extractMessage) \
+			.reduceByKey(lambda a,b: a + b)
+		print("+ " + dirname + ": " + str(errors))
+
+def extractMessage(line):
+	index = find_nth(line, ":",3)
+	return line[index+1:]
+
+def find_nth(haystack, needle, n):
+    start = haystack.find(needle)
+    while start >= 0 and n > 1:
+        start = haystack.find(needle, start+len(needle))
+        n -= 1
+    return start
+
 if __name__ == "__main__":
 	main(sys.argv)
-
 

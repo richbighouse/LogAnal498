@@ -5,6 +5,7 @@
 import sys
 import os
 import re
+import shutil
 from os import walk
 from os.path import isfile, join
 from pyspark import SparkContext, SparkConf
@@ -33,8 +34,10 @@ def main(argv):
 		question6(sys.argv)
 	elif(question == 7):
 		question7(sys.argv)
-
-
+	elif(question == 8):
+		question8(sys.argv)
+	elif(question == 9):
+		question9(sys.argv)
 
 def checkvalid(argv):
 	r = range(1,10)
@@ -72,11 +75,12 @@ def question3(argv):
 	print("* Q3: unique user names")
 	for x in xrange (3, len(argv)):
 		dirname = argv[x]
-		usernames = []
 		text_file = sc.textFile(logdir + dirname)
 		sessions = text_file.filter(lambda line: "Starting Session" in line)
-		usernames.extend(sessions.map(q3filter).collect())		
-		print("+ " + dirname + ": " + str(list(set(usernames))))
+		usernames = sessions.map(q3filter) \
+			.map(lambda user: (user, dirname)) \
+			.reduceByKey(lambda a,b: a).keys()	
+		print("+ " + dirname + ": " + str(usernames.collect()))
 
 def question4(argv):
 	print("* Q4: sessions per user")
@@ -126,9 +130,58 @@ def question7(argv):
 	usernames2 = sessions2.map(q3filter) \
 			.map(lambda user: (user, dirname2)) \
 			.reduceByKey(lambda a,b: a).keys()
-	intersection = usernames1.intersection(usernames2).collect()
-			
+	intersection = usernames1.intersection(usernames2).collect()			
 	print("+ : " + str(intersection))
+
+def question8(argv):
+	print("* Q8: users who started a session on exactly one host, with host name.")
+	dirname1 = argv[3]
+	dirname2 = argv[4]
+	text_file1 = sc.textFile(logdir + dirname1)
+	text_file2 = sc.textFile(logdir + dirname2)
+	sessions1 = text_file1.filter(lambda line: "Starting Session" in line)
+	sessions2 = text_file2.filter(lambda line: "Starting Session" in line)
+	usernames1 = sessions1.map(q3filter) \
+			.map(lambda user: (user, dirname1)) \
+			.reduceByKey(lambda a,b: a)
+	usernames2 = sessions2.map(q3filter) \
+			.map(lambda user: (user, dirname2)) \
+			.reduceByKey(lambda a,b: a)
+	sub1 = usernames1.subtractByKey(usernames2)
+	sub2 = usernames2.subtractByKey(usernames1)
+	print("+ : " + str(sub1.union(sub2).collect()))
+
+def question9(argv):
+	print("* Q9: Anonymization")
+	for x in xrange (3, len(argv)):
+		dirname = argv[x]
+		text_file = sc.textFile(logdir + dirname)
+		sessions = text_file.filter(lambda line: "Starting Session" in line)
+		usernames = sessions.map(q3filter) \
+				.map(lambda user: (user, 1)) \
+				.reduceByKey(lambda a,b: a).sortByKey(True) \
+				.keys().collect()
+		mappings = []
+		for i in range(0,len(usernames)):
+			tup = (usernames[i], "user-"+str(i))
+			mappings.append(tup)
+		
+		print("+ " + dirname + ": ")
+		print(". User name mapping: "+str(mappings))
+		filename = dirname + "-anonymized-10"
+		print(". Anonymized files: " + filename)
+		if(os.path.exists(logdir + filename)):
+			shutil.rmtree(logdir + filename)
+		anon = text_file.map(lambda u: q9replace(u,mappings)).saveAsTextFile(logdir + filename)
+		
+def q9replace(u, mappings):
+	for i in range(0,len(mappings)):
+		key, val = mappings[i]
+		if(key in u.encode('utf-8')):
+			new = u.replace(key, val)
+			return new
+	return u
+		
 
 def q3filter(u):
 	if("Starting Session" in u):

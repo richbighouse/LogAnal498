@@ -198,7 +198,12 @@ def extractMessage(line):
 	return str(line[index+1:])
 
 def extractSourceAndMessage(line):
-	index = find_nth(line, " ",4)
+	pattern = re.compile("^\w{3}\s\s")
+	match = re.search(pattern, line)
+	if(match):
+		index = find_nth(line, " ",5)
+	else:
+		index = find_nth(line, " ",4)
 	return str(line[index+1:])
 
 def find_nth(haystack, needle, n):

@@ -1,0 +1,3 @@
+#!/bin/sh
+
+python log_analyzer2.py "$@"
